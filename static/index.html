@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传系统</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .upload-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .upload-area:hover {
+            border-color: #666;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            margin-top: 10px;
+            display: none;
+            overflow: hidden;
+        }
+        .progress {
+            width: 0%;
+            height: 100%;
+            background-color: #4CAF50;
+            border-radius: 10px;
+            transition: width 0.3s ease-in-out;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        .file-preview {
+            margin-top: 20px;
+            max-width: 100%;
+            display: none;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .code-section {
+            margin: 20px 0;
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 15px;
+        }
+        
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f1f3f5;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        h3 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="upload-container">
+        <h1>文件上传系统</h1>
+        <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" style="display: none" accept="image/*,video/*,.pdf,.txt,.doc,.docx">
+            <p>点击或拖拽文件到此处上传</p>
+            <p style="color: #666; font-size: 0.9em;">支持的格式：图片、视频、PDF、文档</p>
+        </div>
+        <div class="progress-bar" id="progressBar">
+            <div class="progress" id="progress"></div>
+        </div>
+        <button onclick="uploadFile()" id="uploadButton" disabled>上传文件</button>
+    </div>
+    <div id="result" class="result"></div>
+    <div id="preview" class="file-preview"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        
+        fileInput.addEventListener('change', handleFileSelect);
+        
+        // 处理文件选择
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            uploadButton.disabled = !file;
+            if (file) {
+                previewFile(file);
+            }
+        }
+
+        // 文件预览
+        function previewFile(file) {
+            const preview = document.getElementById('preview');
+            
+            if (!file) {
+                preview.style.display = 'none';
+                return;
+            }
+
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.style.display = 'block';
+                    preview.innerHTML = `<img src="${e.target.result}" alt="预览图片" style="max-width: 100%;">`;
+                }
+                reader.readAsDataURL(file);
+            } else if (file.type.startsWith('video/')) {
+                const url = URL.createObjectURL(file);
+                preview.style.display = 'block';
+                preview.innerHTML = `
+                    <video controls style="max-width: 100%;">
+                        <source src="${url}" type="${file.type}">
+                        您的浏览器不支持视频标签
+                    </video>`;
+            } else {
+                preview.style.display = 'block';
+                preview.innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                        <p>文件名: ${file.name}</p>
+                        <p>文件大小: ${formatFileSize(file.size)}</p>
+                        <p>文件类型: ${file.type || '未知'}</p>
+                    </div>`;
+            }
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 上传文件
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const progressBar = document.getElementById('progressBar');
+            const progress = document.getElementById('progress');
+            const uploadButton = document.getElementById('uploadButton');
+            
+            if (!fileInput.files.length) {
+                showResult('请选择文件', false);
+                return;
+            }
+
+            const file = fileInput.files[0];
+            if (file.size > 500 * 1024 * 1024) {
+                showResult('文件大小不能超过500MB', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                uploadButton.disabled = true;
+                progressBar.style.display = 'block';
+                
+                const xhr = new XMLHttpRequest();
+                
+                // 进度处理
+                xhr.upload.onprogress = function(e) {
+                    if (e.lengthComputable) {
+                        const percentComplete = (e.loaded / e.total) * 100;
+                        progress.style.width = percentComplete + '%';
+                    }
+                };
+
+                // 创建Promise包装的XHR请求
+                const response = await new Promise((resolve, reject) => {
+                    xhr.open('POST', '/upload', true);
+                    
+                    xhr.onload = function() {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            resolve(JSON.parse(xhr.responseText));
+                        } else {
+                            reject(new Error('Upload failed'));
+                        }
+                    };
+                    
+                    xhr.onerror = () => reject(new Error('Network error'));
+                    xhr.send(formData);
+                });
+
+                if (response.url) {
+                    showResult(`
+                        文件上传成功！<br>
+                        <a href="${response.url}" target="_blank">点击查看文件</a><br>
+                        文件URL: ${response.url}
+                    `, true);
+
+                    // 更新预览
+                    if (file.type.startsWith('image/')) {
+                        document.getElementById('preview').innerHTML = 
+                            `<img src="${response.url}" alt="已上传图片" style="max-width: 100%;">`;
+                    } else if (file.type.startsWith('video/')) {
+                        document.getElementById('preview').innerHTML = `
+                            <video controls style="max-width: 100%;">
+                                <source src="${response.url}" type="${file.type}">
+                                您的浏览器不支持视频标签
+                            </video>`;
+                    }
+                }
+            } catch (error) {
+                showResult(`上传失败: ${error.message}`, false);
+            } finally {
+                uploadButton.disabled = false;
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progress.style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        function showResult(message, isSuccess) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+            resultDiv.className = `result ${isSuccess ? 'success' : 'error'}`;
+        }
+
+        // 拖拽上传支持
+        const dropZone = document.querySelector('.upload-area');
+
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#4CAF50';
+        });
+
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#ccc';
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = '#ccc';
+            
+            const files = e.dataTransfer.files;
+            if (files.length) {
+                fileInput.files = files;
+                handleFileSelect({target: {files: files}});
+            }
+        });
+    </script>
+
+    <!-- 添加API文档部分 -->
+    <div class="upload-container" style="margin-top: 40px;">
+        <h2>API 调用示例</h2>
+        
+        <!-- Python示例 -->
+        <div class="code-section">
+            <h3>Python</h3>
+            <pre><code>
+import requests
+
+def upload_file(file_path):
+    # 服务器地址
+    url = 'http://192.168.10.164:5000/upload'
+    
+    # 打开文件
+    with open(file_path, 'rb') as f:
+        files = {'file': f}
+        # 发送POST请求
+        response = requests.post(url, files=files)
+    
+    # 检查响应
+    if response.status_code == 200:
+        result = response.json()
+        print('上传成功！')
+        print('文件URL:', result['url'])
+        return result['url']
+    else:
+        print('上传失败:', response.json().get('error'))
+        return None
+
+# 使用示例
+file_url = upload_file('path/to/your/file.jpg')
+            </code></pre>
+        </div>
+
+        <!-- Java示例 -->
+        <div class="code-section">
+            <h3>Java</h3>
+            <pre><code>
+import java.io.File;
+import java.io.IOException;
+import okhttp3.*;
+
+public class FileUploader {
+    private static final String SERVER_URL = "http://192.168.10.164:5000/upload";
+    
+    public static String uploadFile(String filePath) throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        
+        // 创建文件对象
+        File file = new File(filePath);
+        
+        // 创建请求体
+        RequestBody requestBody = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", file.getName(),
+                        RequestBody.create(MediaType.parse("application/octet-stream"), file))
+                .build();
+        
+        // 创建请求
+        Request request = new Request.Builder()
+                .url(SERVER_URL)
+                .post(requestBody)
+                .build();
+        
+        // 发送请求
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                // 解析响应
+                String responseBody = response.body().string();
+                // 这里需要使用JSON解析库处理responseBody
+                return responseBody;
+            }
+        }
+        return null;
+    }
+    
+    public static void main(String[] args) {
+        try {
+            String result = uploadFile("path/to/your/file.jpg");
+            System.out.println("Upload result: " + result);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+            </code></pre>
+        </div>
+
+        <!-- JavaScript示例 -->
+        <div class="code-section">
+            <h3>JavaScript</h3>
+            <pre><code>
+// 使用Fetch API上传文件
+async function uploadFile(file) {
+    const url = 'http://192.168.10.164:5000/upload';
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        
+        if (response.ok) {
+            console.log('上传成功！');
+            console.log('文件URL:', result.url);
+            return result.url;
+        } else {
+            console.error('上传失败:', result.error);
+            return null;
+        }
+    } catch (error) {
+        console.error('上传出错:', error);
+        return null;
+    }
+}
+
+// 使用XMLHttpRequest上传文件（带进度）
+function uploadFileWithProgress(file, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        const formData = new FormData();
+        formData.append('file', file);
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                onProgress(percentComplete);
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                const response = JSON.parse(xhr.responseText);
+                resolve(response.url);
+            } else {
+                reject(new Error('Upload failed'));
+            }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.open('POST', 'http://192.168.10.164:5000/upload', true);
+        xhr.send(formData);
+    });
+}
+
+// 使用示例
+document.getElementById('fileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        try {
+            const url = await uploadFileWithProgress(file, (progress) => {
+                console.log(`上传进度: ${progress}%`);
+            });
+            console.log('文件已上传，URL:', url);
+        } catch (error) {
+            console.error('上传失败:', error);
+        }
+    }
+});
+            </code></pre>
+        </div>
+    </div>
+</body>
+</html> 
