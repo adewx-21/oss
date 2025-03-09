@@ -327,6 +327,86 @@ def health_check():
         'nacos_namespace': NACOS_NAMESPACE
     })
 
+# 确保static目录存在
+STATIC_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static')
+if not os.path.exists(STATIC_FOLDER):
+    os.makedirs(STATIC_FOLDER, exist_ok=True)
+
+# 如果static目录中没有index.html，创建一个简单的
+INDEX_HTML_PATH = os.path.join(STATIC_FOLDER, 'index.html')
+if not os.path.exists(INDEX_HTML_PATH):
+    with open(INDEX_HTML_PATH, 'w') as f:
+        f.write("""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>文件上传服务</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        h1 { color: #333; }
+        .upload-form { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 5px; }
+        .form-group { margin-bottom: 15px; }
+        .btn { padding: 10px 15px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        .btn:hover { background: #45a049; }
+        #result { margin-top: 20px; padding: 10px; border: 1px solid #ddd; display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>文件上传服务</h1>
+        <div class="upload-form">
+            <div class="form-group">
+                <label for="file">选择文件:</label>
+                <input type="file" id="file" name="file">
+            </div>
+            <button class="btn" onclick="uploadFile()">上传</button>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function uploadFile() {
+            const fileInput = document.getElementById('file');
+            const resultDiv = document.getElementById('result');
+            
+            if (!fileInput.files[0]) {
+                alert('请选择文件');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            resultDiv.innerHTML = '上传中...';
+            resultDiv.style.display = 'block';
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    resultDiv.innerHTML = `错误: ${data.error}`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p>上传成功!</p>
+                        <p>文件URL: <a href="${data.url}" target="_blank">${data.url}</a></p>
+                    `;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `上传失败: ${error}`;
+            });
+        }
+    </script>
+</body>
+</html>
+        """)
+
 if __name__ == '__main__':
     # 在生产环境中,我们可能不需要注册Nacos服务
     if os.getenv('ENABLE_NACOS', 'false').lower() == 'true':
