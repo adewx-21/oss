@@ -1,0 +1,11 @@
+# Web 框架和相关扩展
+Flask==3.0.0
+Flask-CORS==4.0.0
+Werkzeug==3.0.1
+
+# Nacos 客户端
+nacos-sdk-python==0.1.12
+
+# 系统和工具包
+python-dateutil==2.8.2
+requests==2.26.0 
