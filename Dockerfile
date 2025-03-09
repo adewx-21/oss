@@ -1,6 +1,11 @@
 # 使用Python 3.9作为基础镜像
 FROM python:3.9-slim
 
+# 安装tini
+ENV TINI_VERSION v0.19.0
+ADD https://github.com/krallin/tini/releases/download/${TINI_VERSION}/tini /tini
+RUN chmod +x /tini
+
 # 设置工作目录
 WORKDIR /app
 
@@ -23,6 +28,9 @@ ENV PORT=8080
 
 # 暴露端口
 EXPOSE 8080
+
+# 使用tini作为入口点
+ENTRYPOINT ["/tini", "--"]
 
 # 启动命令
 CMD ["python", "app.py"] 
